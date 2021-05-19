@@ -1,0 +1,182 @@
+---
+title: "Macro B - PS 3"
+author: "Doron Zamir"
+date: "5/18/2021"
+output:
+  html_document: default
+  pdf_document: 
+    fig_caption: yes
+    highlight: haddock
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  eval = TRUE,
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  cache = FALSE
+)
+```
+
+# Getting things ready
+
+## Load Packages
+
+```{r load_pack}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  tidyverse,
+  readxl,
+  DataExplorer,
+  lpirfs,
+  tinytex
+)
+```
+
+## Load Data
+
+```{r}
+data_raw <- read_xlsx("PS3_Data.xlsx") %>% 
+  drop_na
+```
+
+## Split the Data
+
+Splitting the data into different data sets:
+
+### Endogenous Data
+
+```{r}
+data_endog <- data_raw %>% select(
+  ln_f,
+  u,
+  n,
+  ln_LF,
+  ln_CPI,
+  ln_RW
+)
+```
+
+### The Instrument
+
+```{r}
+data_iv <- data_raw %>% select(
+  eMP
+)
+```
+
+### Shock Data
+
+```{r}
+data_shock <- data_raw %>% select(
+  FFR
+)
+```
+
+### Controls / Exogenous Data
+
+```{r}
+exog_data <- data_raw %>% select(
+  ln_f,
+  ln_CPI,
+  R1,
+  MN2,
+  ln_markup,
+  SW1,
+  SW2,
+  SW3,
+  SW4
+)
+```
+
+### Contemporary Data
+
+```{r}
+contemp_data <- data_raw %>% select(
+  t,
+  t2,
+  t3,
+  t4
+)
+```
+
+## Impulse Response Function
+
+### Computing a 95% confidence interval:
+
+```{r}
+irf_95 <- lp_lin_iv(
+  endog_data = data_endog,
+  shock = data_shock,
+  use_twosls = TRUE,
+  instrum = data_iv,
+  lags_endog_lin = 0,
+  exog_data = exog_data,
+  lags_exog = 2,
+  contemp_data = contemp_data,
+  lags_criterion = NaN,
+  max_lags = NaN,
+  trend = 0,
+  confint =1.645,
+  use_nw = TRUE,
+  nw_lag = NULL,
+  nw_prewhite = FALSE,
+  adjust_se = FALSE,
+  hor = 12
+)
+```
+
+### Computing a 68% confidence interval:
+
+```{r}
+irf_68 <- lp_lin_iv(
+  endog_data = data_endog,
+  shock = data_shock,
+  use_twosls = TRUE,
+  instrum = data_iv,
+  lags_endog_lin = 0,
+  exog_data = exog_data,
+  lags_exog = 2,
+  contemp_data = contemp_data,
+  lags_criterion = NaN,
+  max_lags = NaN,
+  trend = 0,
+  confint =c(1,1.645),
+  use_nw = TRUE,
+  nw_lag = NULL,
+  nw_prewhite = FALSE,
+  adjust_se = FALSE,
+  hor = 12
+)
+```
+
+## Plotting
+
+### 95% confident interval
+
+```{r}
+plot_lin(irf_95)
+```
+
+### 68% confident interval
+
+```{r}
+plot_lin(irf_68)
+```
+
+## Analysis
+
+### 
+
+| Variable     | Model                                                                          | Data                                                                                              |
+|--------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| GDP / Output | drops down sharply at t = 0, and than converges back to the baseline in t = 7  | drops down at t = 2, and neve goes back to baseline                                               |
+| Unemployment | spikes up sharply at t = 2, and than slowly converges to the baseline in t = 7 | rises up slowly in t = 0 to t =5, and than seems to be steady at a higher level then the baseline |
+| Employment   | Drops down with Output                                                         | Drops down with Output                                                                            |
+| Labor Force  | Drops down with Output (but not as much as output)                             | Drops down slower than output                                                                     |
+| Inflation    | Drop down immediately, converges fast back to baseline                         | the same                                                                                          |
+| Real Wages   | Drop down immediately, converges slowly back to baseline                       | drops down and not coming back                                                                    |
+
+```{}
+```
